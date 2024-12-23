@@ -12,14 +12,16 @@ CREATE TABLE public.users (  --overlapping /total comp.
 CREATE TABLE public.adminuser (
     "userid" INT,
 	"adminprivileges" VARCHAR(50),
-    "permissionlevel" VARCHAR(5) NOT NULL
+    "permissionlevel" VARCHAR(5) NOT NULL,
+	 CONSTRAINT "adminuser_userFK" FOREIGN KEY ("userid") REFERENCES public.users("userid")
 )INHERITS("public"."users");
 
 
 CREATE TABLE public.regularuser (
 	"userid" INT,
     "regularuserprivileges" VARCHAR(50),
-    "membershiptype" VARCHAR(10)
+    "membershiptype" VARCHAR(10),
+	CONSTRAINT "regularuser_userFK" FOREIGN KEY ("userid") REFERENCES public.users("userid")
 ) INHERITS("public"."users");
 
 
@@ -34,7 +36,8 @@ CREATE TABLE public.locations ( --disjoint / partial comp.
 CREATE TABLE public.cities (
     "locationid" INT,
     "cityname" VARCHAR(100) NOT NULL,
-    "state" VARCHAR(100)
+    "state" VARCHAR(100),
+	CONSTRAINT "city_locationFK" FOREIGN KEY ("locationid") REFERENCES public.locations("locationid")
 )INHERITS("public"."locations");
 
 
@@ -42,7 +45,8 @@ CREATE TABLE public.cities (
 CREATE TABLE public.countries (
     "locationid" INT,
     "countryname" VARCHAR(100) NOT NULL,
-    "continent" VARCHAR(50)
+    "continent" VARCHAR(50),
+	 CONSTRAINT "country_locationFK" FOREIGN KEY ("locationid") REFERENCES public.locations("locationid")
 )INHERITS("public"."locations");
 
 CREATE TABLE public.payments (
@@ -67,7 +71,9 @@ CREATE TABLE public.transport (
     "transportid" SERIAL,
     "type" VARCHAR(50) NOT NULL,
     "departuretime" TIMESTAMP NOT NULL,
-	CONSTRAINT "transportPK" PRIMARY KEY ("transportid")
+	 "reservationid" INT NOT NULL,
+	CONSTRAINT "transportPK" PRIMARY KEY ("transportid"),
+	 CONSTRAINT "transport_reservationFK" FOREIGN KEY ("reservationid") REFERENCES public.reservations("reservationid") ON DELETE CASCADE
 )INHERITS("public"."reservations");
 
 
@@ -75,7 +81,9 @@ CREATE TABLE public.accommodation ( --disjoint / partial comp.
     "accommodationid" SERIAL,
     "type" VARCHAR(50) CHECK ("type" IN ('hotel', 'hostel')),
     "date" DATE NOT NULL,
-    CONSTRAINT "accommodationPK" PRIMARY KEY ("accommodationid")
+	"reservationid" INT NOT NULL,
+    CONSTRAINT "accommodationPK" PRIMARY KEY ("accommodationid"),
+	  CONSTRAINT "accommodation_reservationFK" FOREIGN KEY ("reservationid") REFERENCES public.reservations("reservationid") ON DELETE CASCADE
 )INHERITS("public"."reservations");
 
 CREATE TABLE public.hotels (
@@ -83,7 +91,9 @@ CREATE TABLE public.hotels (
     "hotelname" VARCHAR(100) NOT NULL,
     "starrating" INT CHECK ("starrating" BETWEEN 1 AND 5),
     "address" TEXT NOT NULL,
-    CONSTRAINT "hotelPK" PRIMARY KEY ("hotelid")
+	"accommodationid" INT NOT NULL,
+    CONSTRAINT "hotelPK" PRIMARY KEY ("hotelid"),
+	  CONSTRAINT "hotel_accommodationFK" FOREIGN KEY ("accommodationid") REFERENCES public.accommodation("accommodationid") ON DELETE CASCADE
 )INHERITS("public"."accommodation");
 
 CREATE TABLE public.hostels (
@@ -91,7 +101,9 @@ CREATE TABLE public.hostels (
     "hostelname" VARCHAR(100) NOT NULL,
     "starrating" INT CHECK ("starrating" BETWEEN 1 AND 5),
     "address" TEXT NOT NULL,
-    CONSTRAINT "hostelPK" PRIMARY KEY ("hostelid")
+	"accommodationid" INT NOT NULL,
+    CONSTRAINT "hostelPK" PRIMARY KEY ("hostelid"),
+	 CONSTRAINT "hostel_accommodationFK" FOREIGN KEY ("accommodationid") REFERENCES public.accommodation("accommodationid") ON DELETE CASCADE
 )INHERITS("public"."accommodation");
 
 
@@ -118,14 +130,18 @@ CREATE TABLE public.reviews ( --disjoint / total comp.
 CREATE TABLE public.reservationreview (
     "reviewid" INT NOT NULL,
     "reservationid" INT NOT NULL,
-    CONSTRAINT "reservationreview_reservationFK" FOREIGN KEY ("reservationid") REFERENCES public.reservations("reservationid") ON DELETE CASCADE
+    CONSTRAINT "reservationreviewPK" PRIMARY KEY ("reviewid", "reservationid"),
+    CONSTRAINT "reservationreview_reservationFK" FOREIGN KEY ("reservationid") REFERENCES public.reservations("reservationid") ON DELETE CASCADE,
+    CONSTRAINT "reservationreview_reviewFK" FOREIGN KEY ("reviewid") REFERENCES public.reviews("reviewid") ON DELETE CASCADE
 ) INHERITS("public"."reviews");
 
 CREATE TABLE public.locationreview (
     "locationreviewid" SERIAL,
     "reviewid" INT NOT NULL,
+	"locationid" INT NOT NULL,
+     CONSTRAINT "locationreviewPK" PRIMARY KEY ("locationreviewid"),
     CONSTRAINT "locationreview_locationFK" FOREIGN KEY ("locationid") REFERENCES public.locations("locationid") ON DELETE CASCADE,
-    CONSTRAINT "locationreviewPK" PRIMARY KEY ("locationreviewid")
+    CONSTRAINT "locationreview_reviewFK" FOREIGN KEY ("reviewid") REFERENCES public.reviews("reviewid") ON DELETE CASCADE
 )INHERITS("public"."reviews");
 
 
@@ -147,7 +163,8 @@ CREATE TABLE public.tripactivities (
     "cost" DECIMAL(10, 2) NOT NULL,
     "activitydate" DATE NOT NULL,
     CONSTRAINT "tripactivityPK" PRIMARY KEY ("tripid", "activityid"),
-    CONSTRAINT "tripactivity_tripFK" FOREIGN KEY ("tripid") REFERENCES public.trips("tripid") ON DELETE CASCADE
+    CONSTRAINT "tripactivity_tripFK" FOREIGN KEY ("tripid") REFERENCES public.trips("tripid") ON DELETE CASCADE,
+    CONSTRAINT "tripactivity_activityFK" FOREIGN KEY ("activityid") REFERENCES public.activities("activityid") ON DELETE CASCADE
 );
 
 CREATE TABLE public.triplocations (
@@ -169,7 +186,6 @@ CREATE TABLE public.activities (
 
 INSERT INTO "public"."adminuser" ("userid", "name", "surname", "email", "phoneno", "password") 
 VALUES (6, 'Marlane', 'Rutigliano', 'mrutigliano5@godaddy.com', '+47 (546) 118-7356', 'pH3><s.wYN6UX''?G');
-
 
 
 
