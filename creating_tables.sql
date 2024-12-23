@@ -157,6 +157,14 @@ CREATE TABLE public.trips (
     CONSTRAINT "trip_userFK" FOREIGN KEY ("userid") REFERENCES public.users("userid") ON DELETE CASCADE
 );
 
+CREATE TABLE public.activities (
+    "activityid" SERIAL,
+    "activityname" VARCHAR(100) NOT NULL,
+    "description" TEXT,
+    CONSTRAINT "activityPK" PRIMARY KEY ("activityid")
+);
+
+
 CREATE TABLE public.tripactivities (
     "tripid" INT NOT NULL,
     "activityid" SERIAL,
@@ -177,15 +185,7 @@ CREATE TABLE public.triplocations (
     CONSTRAINT "triplocation_locationFK" FOREIGN KEY ("locationid") REFERENCES public.locations("locationid") ON DELETE CASCADE
 );
 
-CREATE TABLE public.activities (
-    "activityid" SERIAL,
-    "activityname" VARCHAR(100) NOT NULL,
-    "description" TEXT,
-    CONSTRAINT "activityPK" PRIMARY KEY ("activityid")
-);
+
 
 INSERT INTO "public"."adminuser" ("userid", "name", "surname", "email", "phoneno", "password") 
 VALUES (6, 'Marlane', 'Rutigliano', 'mrutigliano5@godaddy.com', '+47 (546) 118-7356', 'pH3><s.wYN6UX''?G');
-
-
-
