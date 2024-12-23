@@ -27,7 +27,7 @@ CREATE TABLE public.locations ( --disjoint / partial comp.
     "locationid" SERIAL,
     "name" VARCHAR(100) NOT NULL,
     "country" VARCHAR(50) NOT NULL,
-    "city" VARCHAR(50) NOT NULL
+    "city" VARCHAR(50) NOT NULL,
 	CONSTRAINT "locationPK" PRIMARY KEY ("locationid") 
 );
 
@@ -45,6 +45,13 @@ CREATE TABLE public.countries (
     "continent" VARCHAR(50)
 )INHERITS("public"."locations");
 
+CREATE TABLE public.payments (
+    "paymentid" SERIAL,
+    "paymentdate" DATE DEFAULT CURRENT_DATE,
+    "totalamount" NUMERIC(10, 2) NOT NULL,
+    "paymentmethod" VARCHAR(50) NOT NULL,
+    CONSTRAINT "paymentPK" PRIMARY KEY ("paymentid")
+);
 
 CREATE TABLE public.reservations ( --disjoint / total comp.
     "reservationid" SERIAL,
@@ -77,7 +84,7 @@ CREATE TABLE public.hotels (
     "starrating" INT CHECK ("starrating" BETWEEN 1 AND 5),
     "address" TEXT NOT NULL,
     CONSTRAINT "hotelPK" PRIMARY KEY ("hotelid")
-)INHERITS("public"."accomodation");
+)INHERITS("public"."accommodation");
 
 CREATE TABLE public.hostels (
     "hostelid" SERIAL,
@@ -85,16 +92,10 @@ CREATE TABLE public.hostels (
     "starrating" INT CHECK ("starrating" BETWEEN 1 AND 5),
     "address" TEXT NOT NULL,
     CONSTRAINT "hostelPK" PRIMARY KEY ("hostelid")
-)INHERITS("public"."accomodation");
+)INHERITS("public"."accommodation");
 
 
-CREATE TABLE public.payments (
-    "paymentid" SERIAL,
-    "paymentdate" DATE DEFAULT CURRENT_DATE,
-    "totalamount" NUMERIC(10, 2) NOT NULL,
-    "paymentmethod" VARCHAR(50) NOT NULL,
-    CONSTRAINT "paymentPK" PRIMARY KEY ("paymentid")
-);
+
 
 CREATE TABLE public.transportcompany (
     "companyid" SERIAL PRIMARY KEY,
@@ -123,8 +124,8 @@ CREATE TABLE public.reservationreview (
 CREATE TABLE public.locationreview (
     "locationreviewid" SERIAL,
     "reviewid" INT NOT NULL,
-    CONSTRAINT "locationreview_reservationFK" FOREIGN KEY ("locationsid") REFERENCES public.locations("locationsid") ON DELETE CASCADE
-    CONSTRAINT "locationreviewPK" PRIMARY KEY ("locationreviewid"),
+    CONSTRAINT "locationreview_locationFK" FOREIGN KEY ("locationid") REFERENCES public.locations("locationid") ON DELETE CASCADE,
+    CONSTRAINT "locationreviewPK" PRIMARY KEY ("locationreviewid")
 )INHERITS("public"."reviews");
 
 
@@ -168,7 +169,6 @@ CREATE TABLE public.activities (
 
 INSERT INTO "public"."adminuser" ("userid", "name", "surname", "email", "phoneno", "password") 
 VALUES (6, 'Marlane', 'Rutigliano', 'mrutigliano5@godaddy.com', '+47 (546) 118-7356', 'pH3><s.wYN6UX''?G');
-
 
 
 
