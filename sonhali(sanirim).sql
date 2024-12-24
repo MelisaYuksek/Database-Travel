@@ -164,8 +164,6 @@ CREATE TABLE public.triplocations (
                                       CONSTRAINT "triplocation_tripFK" FOREIGN KEY ("tripid") REFERENCES public.trips("tripid") ON DELETE CASCADE,
                                       CONSTRAINT "triplocation_locationFK" FOREIGN KEY ("locationid") REFERENCES public.locations("locationid") ON DELETE CASCADE
 );
-
----- Function to add admin user
 CREATE OR REPLACE FUNCTION add_admin_user(
     p_userid INT,
     p_name VARCHAR(50),
@@ -195,12 +193,44 @@ BEGIN
                p_adminprivileges,
                p_permissionlevel
            );
-    SELECT * FROM pg_language WHERE lanname = 'plpgsql';
+
+    -- Check for PL/pgSQL language
+    PERFORM * FROM pg_language WHERE lanname = 'plpgsql';
 
     -- Optionally, you can raise a notice for success
     RAISE NOTICE 'Admin user % % added successfully.', p_name, p_surname;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+SELECT * FROM public.users WHERE userid = 101;
+-----------------------------------------------------------FONK1 çalıştır
+-- Foreign key kısıtlamasını geçici olarak kaldırın
+ALTER TABLE public.adminuser DISABLE TRIGGER ALL;
+
+-- Admin kullanıcısını ekleyin
+SELECT add_admin_user(
+    101, 
+    'John', 
+    'Doe', 
+    'johndoe@example.com', 
+    'password123', 
+    '+1-555-555-5555', 
+    'Full', 
+    'Admin'
+);
+
+SELECT * FROM public.adminuser WHERE userid = 101;
+
+SELECT* FROM adminuser;
+
+SELECT delete_admin_user(101); ----------------FONK2 Çalıştır
+
+
+-- Foreign key kısıtlamasını tekrar etkinleştirin
+ALTER TABLE public.adminuser ENABLE TRIGGER ALL;
+
 
 -- Function to delete admin user
 CREATE OR REPLACE FUNCTION delete_admin_user(p_userid INT)
@@ -243,6 +273,7 @@ BEGIN
     RAISE NOTICE 'Admin user with userid % updated successfully.', p_userid;
 END;
 $$ LANGUAGE plpgsql;
+
 
 -- Function to update user phone number
 CREATE OR REPLACE FUNCTION update_user_phoneno(
@@ -370,3 +401,37 @@ CREATE TRIGGER trigger_update_related_transport_accommodation
     FOR EACH ROW
     WHEN (OLD.reservationdate IS DISTINCT FROM NEW.reservationdate)
     EXECUTE FUNCTION update_related_transport_accommodation();
+
+CREATE OR REPLACE FUNCTION set_default_name()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Eğer isim verilmemişse, varsayılan bir isim belirle
+    IF NEW.name IS NULL THEN
+        NEW.name := 'Default Name';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_default_name_trigger
+BEFORE INSERT
+ON public.adminuser
+FOR EACH ROW
+EXECUTE FUNCTION set_default_name();
+
+
+
+INSERT INTO public.users ("userid", "name", "surname", "email", "password", "phoneno")
+VALUES (6, 'Alex', 'Morgan', 'amorgan7@abc.com', 'Xy7!pZ3b', '+1 (312) 485-2938');
+
+INSERT INTO public.users ("userid", "name", "surname", "email", "password", "phoneno")
+VALUES (2, 'Sam', 'Tanner', 'stanner2@xyz.org', 'Qw3@RtY9', '+1 (561) 307-8234');
+
+INSERT INTO public.users ("userid", "name", "surname", "email", "password", "phoneno")
+VALUES (3, 'Jordan', 'Lee', 'jlee8@company.net', 'Pq2@Jh8o', '+1 (415) 652-9726');
+
+INSERT INTO public.users ("userid", "name", "surname", "email", "password", "phoneno")
+VALUES (4, 'Chris', 'Henderson', 'chenderson5@demo.edu', 'Lx4!Fg7v', '+1 (555) 107-4829');
+
+INSERT INTO public.users ("userid", "name", "surname", "email", "password", "phoneno")
+VALUES (7, 'Taylor', 'Davis', 'tdavis1@service.com', 'Bf9!TuX3', '+1 (408) 305-2013');
