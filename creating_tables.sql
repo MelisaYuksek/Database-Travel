@@ -10,10 +10,11 @@ CREATE TABLE public.users (  --overlapping /total comp.
 );
 
 CREATE TABLE public.adminuser (
-    "userid" INT,
+    "userid" INT SERIAL,
 	"adminprivileges" VARCHAR(50),
-    "permissionlevel" VARCHAR(5) NOT NULL,
-	 CONSTRAINT "adminuser_userFK" FOREIGN KEY ("userid") REFERENCES public.users("userid")
+    "permissionlevel" VARCHAR(5) NOT NULL
+	 CONSTRAINT unique_admin_userid CHECK (
+        NOT EXISTS (SELECT 1 FROM public.users WHERE users.userid = adminuser.userid)
 )INHERITS("public"."users");
 
 
@@ -156,14 +157,12 @@ CREATE TABLE public.trips (
     CONSTRAINT "tripPK" PRIMARY KEY ("tripid"),
     CONSTRAINT "trip_userFK" FOREIGN KEY ("userid") REFERENCES public.users("userid") ON DELETE CASCADE
 );
-
 CREATE TABLE public.activities (
     "activityid" SERIAL,
     "activityname" VARCHAR(100) NOT NULL,
     "description" TEXT,
     CONSTRAINT "activityPK" PRIMARY KEY ("activityid")
 );
-
 
 CREATE TABLE public.tripactivities (
     "tripid" INT NOT NULL,
@@ -185,7 +184,132 @@ CREATE TABLE public.triplocations (
     CONSTRAINT "triplocation_locationFK" FOREIGN KEY ("locationid") REFERENCES public.locations("locationid") ON DELETE CASCADE
 );
 
+CREATE OR REPLACE FUNCTION add_admin_user(
+    p_userid INT,
+    p_name VARCHAR(50),
+    p_surname VARCHAR(50),
+    p_email VARCHAR(50),
+    p_password VARCHAR(255),
+    p_phoneno VARCHAR(30),
+    p_adminprivileges VARCHAR(50),
+    p_permissionlevel VARCHAR(5)
+)
+RETURNS VOID AS $$
+BEGIN
+    -- Check if userid exists in the users table
+    IF NOT check_userid_not_exists(p_userid) THEN
+        RAISE EXCEPTION 'Cannot add admin user because the UserID % already exists.', p_userid;
+    END IF;
+    
+    -- Insert into the adminuser table
+    INSERT INTO public.adminuser (userid, name, surname, email, password, phoneno, adminprivileges, permissionlevel)
+    VALUES (
+        p_userid,
+        p_name,
+        p_surname,
+        p_email,
+        p_password,
+        p_phoneno,
+        p_adminprivileges,
+        p_permissionlevel
+    );
+    
+    -- Optionally, you can raise a notice for success
+    RAISE NOTICE 'Admin user % % added successfully.', p_name, p_surname;
+END;
+$$ LANGUAGE plpgsql;
 
 
-INSERT INTO "public"."adminuser" ("userid", "name", "surname", "email", "phoneno", "password") 
-VALUES (6, 'Marlane', 'Rutigliano', 'mrutigliano5@godaddy.com', '+47 (546) 118-7356', 'pH3><s.wYN6UX''?G');
+CREATE OR REPLACE FUNCTION delete_admin_user(p_userid INT)
+RETURNS VOID AS $$
+BEGIN
+    -- Delete from the adminuser table using the provided userid
+    DELETE FROM public.adminuser WHERE userid = p_userid;
+
+    -- Optionally, raise a notice
+    RAISE NOTICE 'Admin user with userid % deleted successfully.', p_userid;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION update_admin_user(
+    p_userid INT,
+    p_name VARCHAR(50),
+    p_surname VARCHAR(50),
+    p_email VARCHAR(50),
+    p_password VARCHAR(255),
+    p_phoneno VARCHAR(30),
+    p_adminprivileges VARCHAR(50),
+    p_permissionlevel VARCHAR(5)
+)
+RETURNS VOID AS $$
+BEGIN
+    -- Update the adminuser table based on the provided userid
+    UPDATE public.adminuser
+    SET
+        name = p_name,
+        surname = p_surname,
+        email = p_email,
+        password = p_password,
+        phoneno = p_phoneno,
+        adminprivileges = p_adminprivileges,
+        permissionlevel = p_permissionlevel
+    WHERE userid = p_userid;
+
+    -- Optionally, raise a notice
+    RAISE NOTICE 'Admin user with userid % updated successfully.', p_userid;
+END;
+$$ LANGUAGE plpgsql;
+
+--------------TRIGGER 1----------------
+-- Kullanıcı Ekleme Logu Trigger'ı
+
+CREATE OR REPLACE FUNCTION log_user_addition()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Yeni eklenen kullanıcının log kaydını ekliyoruz
+    INSERT INTO public.user_logs (userid, action, action_date) 
+    VALUES (NEW.userid, 'User Added', CURRENT_TIMESTAMP);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Kullanıcı ekleme sonrası log kaydını ekleyen Trigger
+
+CREATE TRIGGER after_user_add
+AFTER INSERT ON public.adminuser
+FOR EACH ROW
+EXECUTE FUNCTION log_user_addition();
+---------------------------------------------
+--------------TRIGGER 2----------------
+CREATE OR REPLACE FUNCTION cascade_delete_reservation()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Silinen rezervasyonun transport ve accommodation kayıtlarını da sil
+    DELETE FROM public.transport WHERE reservationid = OLD.reservationid;
+    DELETE FROM public.accommodation WHERE reservationid = OLD.reservationid;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER after_reservation_delete
+AFTER DELETE ON public.reservations
+FOR EACH ROW
+EXECUTE FUNCTION cascade_delete_reservation();
+---------------------------------------------
+
+
+
+INSERT INTO public.users ("name", "surname", "email",  "password", "phoneno") 
+VALUES ('Evvy', 'Bloom', 'ebloom0@360.cn', '+1 (185) 105-9530', 'aB1.@yD2h');
+
+INSERT INTO public.adminuser ("userid","name", "surname", "email",  "password", "phoneno","adminprivileges","permissionlevel")
+VALUES (1,'Evvy', 'Bloom', 'ebloom0@360.cn', '+1 (185) 105-9530', 'aB1.@yD2h','ITAccess',3);
+
+INSERT INTO public.users (name, surname, email, password, phoneno)
+VALUES ('John', 'Doe', 'johndoe@example.com', 'password123', '123456789');
+
+INSERT INTO public.adminuser (userid, adminprivileges, permissionlevel)
+VALUES (5, 'AllAccess', 'A1');
+
